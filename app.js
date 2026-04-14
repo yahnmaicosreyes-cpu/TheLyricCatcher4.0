@@ -273,13 +273,45 @@ function levenshtein(a, b) {
 }
 
 /**
+ * Map a word to a 4-character Soundex code for phonetic matching.
+ * Words that sound alike (e.g. "surrender" / "surrendr") produce the same code.
+ * Guards against false positives on short words — returns '' for inputs under 2 chars.
+ *
+ * Soundex rules:
+ *   1. Keep first letter.
+ *   2. Encode remaining consonants: B/F/P/V=1  C/G/J/K/Q/S/X/Z=2  D/T=3  L=4  M/N=5  R=6
+ *   3. Drop adjacent duplicates, drop vowels and H/W/Y.
+ *   4. Pad with zeros to length 4, or truncate at 4.
+ *
+ * @param {string} str
+ * @returns {string} 4-character Soundex code, or '' for invalid input.
+ */
+function soundex(str) {
+  const map = {B:1,F:1,P:1,V:1,C:2,G:2,J:2,K:2,Q:2,S:2,X:2,Z:2,D:3,T:3,L:4,M:5,N:5,R:6};
+  const s = str.toUpperCase().replace(/[^A-Z]/g, '');
+  if (s.length < 2) return '';
+  let code = s[0];
+  let prev = map[s[0]] || 0;
+  for (let i = 1; i < s.length; i++) {
+    const curr = map[s[i]] || 0;
+    if (curr && curr !== prev) { code += curr; if (code.length === 4) break; }
+    prev = curr;
+  }
+  return (code + '000').slice(0, 4);
+}
+
+/**
  * Score one query token against the best-matching token in a target list.
  *
- * Score tiers:
+ * Score tiers (checked in order, returns on first hit):
  *   1.0 — exact match
  *   0.9 — target starts with the full query token (prefix match)
- *   0.6 — target shares the first 3 characters (loose prefix match)
- *   0.5 — edit distance ≤ 35% of query length (fuzzy match)
+ *   0.75 — target shares first 5+ characters (long prefix match)       ← new
+ *   0.6 — target shares first 3 characters (loose prefix match)
+ *   0.5 — Levenshtein edit distance within tolerance:
+ *            words > 5 chars: ≤ 40% of length  (was 35%)              ← loosened
+ *            words ≤ 5 chars: ≤ 35% of length  (unchanged)
+ *   0.4 — Soundex phonetic match (sounds alike, both words > 3 chars)  ← new
  *   0.0 — no match
  *
  * @param {string} qt - Single query token.
@@ -290,8 +322,11 @@ function scoreToken(qt, targetTokens) {
   for (const tt of targetTokens) {
     if (tt === qt) return 1;
     if (tt.startsWith(qt)) return 0.9;
+    if (qt.length > 5 && tt.startsWith(qt.slice(0, 5))) return 0.75;
     if (qt.length > 3 && tt.startsWith(qt.slice(0, 3))) return 0.6;
-    if (qt.length > 2 && levenshtein(qt, tt) <= Math.floor(qt.length * 0.35)) return 0.5;
+    const tolerance = qt.length > 5 ? 0.40 : 0.35;
+    if (qt.length > 2 && levenshtein(qt, tt) <= Math.floor(qt.length * tolerance)) return 0.5;
+    if (qt.length > 3 && tt.length > 3 && soundex(qt) === soundex(tt)) return 0.4;
   }
   return 0;
 }
