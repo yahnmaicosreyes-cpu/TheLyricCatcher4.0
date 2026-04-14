@@ -242,7 +242,7 @@ function tokenize(str) { return normalize(str).split(' ').filter(w => w.length >
  */
 const STOP_WORDS = new Set([
   'i','a','the','and','or','in','on','at','to','is','it','of',
-  'my','me','we','you','your','his','her','our','are','was','be',
+  'my','me','we','your','his','her','our','are','was','be',
   'by','an','so','no','do','up','oh','for','but','not'
 ]);
 
@@ -330,6 +330,37 @@ function getBestSnippet(queryTokens, text) {
 }
 
 /**
+ * Score how well query tokens appear as a consecutive phrase in a target string.
+ * Finds the longest unbroken run of consecutive query tokens that appears
+ * verbatim (space-joined) inside the normalized target, and returns that
+ * run length as a proportion of the total query length.
+ *
+ * Example: query ["i","love","you","lord"], target contains "love you lord"
+ *   → best run = 3, score = 3/4 = 0.75
+ *
+ * Uses all query tokens (including stop words) so that common words like
+ * "you" contribute to phrase identity when they appear in sequence.
+ *
+ * @param {string[]} queryTokens - All query tokens, including stop words.
+ * @param {string} normalizedTarget - Pre-normalized lyrics string.
+ * @returns {number} Score in [0, 1] — 1.0 means the full phrase matched verbatim.
+ */
+function phraseScore(queryTokens, normalizedTarget) {
+  if (queryTokens.length === 0) return 0;
+  let best = 0;
+  for (let start = 0; start < queryTokens.length; start++) {
+    for (let end = start + 1; end <= queryTokens.length; end++) {
+      if (normalizedTarget.includes(queryTokens.slice(start, end).join(' '))) {
+        best = Math.max(best, end - start);
+      } else {
+        break; // extending the window further won't match
+      }
+    }
+  }
+  return best / queryTokens.length;
+}
+
+/**
  * Split lyrics into labeled sections using [bracket] markers.
  * Recognized labels: verse, chorus, bridge, pre-chorus, hook, intro, outro, refrain.
  *
@@ -390,7 +421,8 @@ function getThreshold(query) {
  * Score a single song against the effective query tokens.
  *
  * Scoring priorities — higher multiplier = ranked above lower multiplier:
- *   ×4   First 40 words of lyrics (the opening hook has the highest recall signal)
+ *   ×6   Consecutive phrase match in full lyrics (verbatim sequence of query tokens)
+ *   ×4   First 40 words of lyrics (opening hook)
  *   ×2   Remaining lyrics
  *   ×1.5 Parsed lyric sections (also resolves section labels for UI display)
  *   ×1   Title, artist, album
@@ -403,12 +435,25 @@ function getThreshold(query) {
  * @param {Object} song
  * @param {string[]} effective - Meaningful (non-stop-word) query tokens, or all
  *   tokens if the query was entirely stop words.
+ * @param {string[]} qTokens - All query tokens including stop words, used for
+ *   phrase matching where word order and common words carry identity.
  * @returns {{score: number, snippet: string, matchedField: string|null}}
  */
-function searchSong(song, effective) {
+function searchSong(song, effective, qTokens) {
   let bestScore = -1;
   let bestSnippet = '';
   let matchedField = null;
+
+  // Priority 0 — consecutive phrase match (highest boost).
+  // Checks whether the query tokens appear verbatim and in sequence anywhere
+  // in the lyrics. Uses all tokens (including stop words like "you") because
+  // word order is the signal here, not semantic weight.
+  // A full phrase match scores 6.0, outranking all other priorities.
+  if (qTokens.length >= 2) {
+    const normLyrics = normalize(song.lyrics);
+    const ps = phraseScore(qTokens, normLyrics) * 6;
+    if (ps > bestScore) { bestScore = ps; bestSnippet = getBestSnippet(qTokens, song.lyrics); matchedField = 'opening'; }
+  }
 
   // Priority 1 — opening hook (first 40 words), highest boost.
   // Strip any leading section label (case-insensitive) before windowing so the
@@ -465,7 +510,7 @@ function search(query) {
   const threshold = getThreshold(query);
   return getAllSongs()
     .map(song => {
-      const { score, snippet, matchedField } = searchSong(song, effective);
+      const { score, snippet, matchedField } = searchSong(song, effective, qTokens);
       return { song, score, snippet, matchedField };
     })
     .filter(r => r.score > threshold)
