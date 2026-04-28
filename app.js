@@ -34,7 +34,7 @@
  * @returns {Array<Object>} Stored songs, or [] if nothing saved or parse fails.
  */
 function loadStoredSongs() {
-  try { const raw = localStorage.getItem(STORAGE_KEY); return raw ? JSON.parse(raw) : []; } catch(e) { return []; }
+  try { const raw = localStorage.getItem(STORAGE_KEY); return raw ? JSON.parse(raw) : []; } catch { return []; }
 }
 
 /**
@@ -42,7 +42,7 @@ function loadStoredSongs() {
  * @param {Array<Object>} songs
  */
 function saveStoredSongs(songs) {
-  try { localStorage.setItem(STORAGE_KEY, JSON.stringify(songs)); } catch(e) {}
+  try { localStorage.setItem(STORAGE_KEY, JSON.stringify(songs)); } catch {}
 }
 
 /**
@@ -50,7 +50,7 @@ function saveStoredSongs(songs) {
  * @returns {string[]}
  */
 function loadDeletedIds() {
-  try { const raw = localStorage.getItem(DELETED_KEY); return raw ? JSON.parse(raw) : []; } catch(e) { return []; }
+  try { const raw = localStorage.getItem(DELETED_KEY); return raw ? JSON.parse(raw) : []; } catch { return []; }
 }
 
 /**
@@ -58,7 +58,7 @@ function loadDeletedIds() {
  * @param {string[]} ids
  */
 function saveDeletedIds(ids) {
-  try { localStorage.setItem(DELETED_KEY, JSON.stringify(ids)); } catch(e) {}
+  try { localStorage.setItem(DELETED_KEY, JSON.stringify(ids)); } catch {}
 }
 
 /**
@@ -66,7 +66,7 @@ function saveDeletedIds(ids) {
  * @returns {Object.<string, Object>}
  */
 function loadOverrides() {
-  try { const raw = localStorage.getItem(OVERRIDES_KEY); return raw ? JSON.parse(raw) : {}; } catch(e) { return {}; }
+  try { const raw = localStorage.getItem(OVERRIDES_KEY); return raw ? JSON.parse(raw) : {}; } catch { return {}; }
 }
 
 /**
@@ -74,7 +74,7 @@ function loadOverrides() {
  * @param {Object.<string, Object>} overrides
  */
 function saveOverrides(overrides) {
-  try { localStorage.setItem(OVERRIDES_KEY, JSON.stringify(overrides)); } catch(e) {}
+  try { localStorage.setItem(OVERRIDES_KEY, JSON.stringify(overrides)); } catch {}
 }
 
 /**
