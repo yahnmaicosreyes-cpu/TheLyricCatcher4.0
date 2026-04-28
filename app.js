@@ -76,16 +76,19 @@ async function addSongs(newSongs) {
       s.artist.toLowerCase() === ns.artist.toLowerCase()
     )
   );
-  for (const song of deduplicated) {
-    await apiCreateSong({
-      title: song.title,
-      artist: song.artist,
-      album: song.album || null,
-      genre: 'Christian Worship Music',
-      lyrics: song.lyrics,
-    });
+  try {
+    for (const song of deduplicated) {
+      await apiCreateSong({
+        title: song.title,
+        artist: song.artist,
+        album: song.album || null,
+        genre: 'Christian Worship Music',
+        lyrics: song.lyrics,
+      });
+    }
+  } finally {
+    await loadAllSongs();
   }
-  await loadAllSongs();
   return deduplicated.length;
 }
 
