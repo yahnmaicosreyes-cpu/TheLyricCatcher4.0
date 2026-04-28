@@ -494,7 +494,7 @@ function searchSong(song, effective, qTokens) {
   // Strip any leading section label (case-insensitive) before windowing so the
   // 40-word window captures actual lyric content, not a header like "Verse 1".
   // Matches at position 0 only: verse, verse N, chorus, bridge, pre chorus, pre-chorus.
-  const lyricsBody = song.lyrics.replace(/^(verse(\s+\d+)?|chorus|bridge|pre[-\s]chorus)\s*/i, '');
+  const lyricsBody = song.lyrics.replace(/^\[?(verse(\s+\d+)?|chorus|bridge|pre[-\s]chorus)\]?\s*/i, '');
   const openingWords = lyricsBody.split(' ').slice(0, 40).join(' ');
   const openingScore = ngramOverlap(effective, openingWords) * 4;
   if (openingScore > bestScore) { bestScore = openingScore; bestSnippet = openingWords; matchedField = 'opening'; }
