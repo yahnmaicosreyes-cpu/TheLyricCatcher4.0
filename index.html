@@ -7,14 +7,15 @@
   <!--
     Content Security Policy
     ───────────────────────
-    default-src 'none'  — block everything not explicitly listed
-    script-src 'self'   — only load JS from this origin (data.js, app.js)
-    style-src  'self'   — only load CSS from this origin (style.css)
-    base-uri   'self'   — prevent <base> tag hijacking
-    form-action 'none'  — no form submissions
+    default-src  'none'  — block everything not explicitly listed
+    script-src   'self'  — only load JS from this origin (data.js, app.js)
+    style-src    'self'  — only load CSS from this origin (style.css)
+    connect-src  'self'  — allow fetch() to the same-origin API
+    base-uri     'self'  — prevent <base> tag hijacking
+    form-action  'none'  — no form submissions
   -->
   <meta http-equiv="Content-Security-Policy"
-        content="default-src 'none'; script-src 'self'; style-src 'self'; base-uri 'self'; form-action 'none';">
+        content="default-src 'none'; script-src 'self'; style-src 'self'; connect-src 'self'; base-uri 'self'; form-action 'none';">
   <link rel="stylesheet" href="style.css" />
 </head>
 <body>
@@ -78,7 +79,7 @@
   </div>
 </div>
 
-<!-- data.js must load before app.js (defines STORAGE_KEY, BUILT_IN) -->
+<!-- data.js must load before app.js (defines API client functions) -->
 <script src="data.js"></script>
 <script src="app.js"></script>
 
