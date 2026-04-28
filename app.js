@@ -3,8 +3,7 @@
  *
  * Module map
  * ──────────
- *  Storage     loadStoredSongs / saveStoredSongs / loadDeletedIds /
- *              saveDeletedIds / loadOverrides / saveOverrides / getAllSongs
+ *  Storage     loadStoredSongs / saveStoredSongs / getAllSongs
  *
  *  File Import parseTxtFile / addSongs / updateSongCount / showToast /
  *              handleFile / drop-zone event listeners
@@ -24,7 +23,7 @@
  *
  * Dependencies (must load before this file)
  * ──────────────────────────────────────────
- *  data.js — defines STORAGE_KEY, DELETED_KEY, OVERRIDES_KEY, BUILT_IN
+ *  data.js — defines STORAGE_KEY, BUILT_IN
  */
 
 // ── Storage ────────────────────────────────────────────────
@@ -46,50 +45,11 @@ function saveStoredSongs(songs) {
 }
 
 /**
- * Load the set of built-in song IDs the user has deleted.
- * @returns {string[]}
- */
-function loadDeletedIds() {
-  try { const raw = localStorage.getItem(DELETED_KEY); return raw ? JSON.parse(raw) : []; } catch { return []; }
-}
-
-/**
- * Persist the set of deleted built-in song IDs.
- * @param {string[]} ids
- */
-function saveDeletedIds(ids) {
-  try { localStorage.setItem(DELETED_KEY, JSON.stringify(ids)); } catch {}
-}
-
-/**
- * Load user edits applied to built-in songs, keyed by song ID.
- * @returns {Object.<string, Object>}
- */
-function loadOverrides() {
-  try { const raw = localStorage.getItem(OVERRIDES_KEY); return raw ? JSON.parse(raw) : {}; } catch { return {}; }
-}
-
-/**
- * Persist user edits for built-in songs.
- * @param {Object.<string, Object>} overrides
- */
-function saveOverrides(overrides) {
-  try { localStorage.setItem(OVERRIDES_KEY, JSON.stringify(overrides)); } catch {}
-}
-
-/**
- * Return the full active song library: built-ins (minus deleted, plus any
- * user edits) followed by user-added songs, both filtered for deleted IDs.
+ * Return the full active song library: built-ins followed by user-added songs.
  * @returns {Array<Object>}
  */
 function getAllSongs() {
-  const deletedIds = loadDeletedIds();
-  const overrides = loadOverrides();
-  const builtIn = BUILT_IN
-    .filter(s => !deletedIds.includes(s.id))
-    .map(s => overrides[s.id] ? { ...s, ...overrides[s.id] } : s);
-  const stored = loadStoredSongs().filter(s => !deletedIds.includes(s.id));
-  return [...builtIn, ...stored];
+  return [...BUILT_IN, ...loadStoredSongs()];
 }
 
 // ── File Import ────────────────────────────────────────────
@@ -665,39 +625,19 @@ function escHtml(str) {
 
 /**
  * Delete a song by ID.
- * Built-in songs are soft-deleted (ID added to the deleted-IDs list and any
- * overrides removed). User-added songs are removed from stored songs directly.
  * @param {string} id
  */
 function deleteSong(id) {
-  const isBuiltIn = BUILT_IN.some(s => s.id === id);
-  if (isBuiltIn) {
-    const deletedIds = loadDeletedIds();
-    if (!deletedIds.includes(id)) saveDeletedIds([...deletedIds, id]);
-    const overrides = loadOverrides();
-    delete overrides[id];
-    saveOverrides(overrides);
-  } else {
-    saveStoredSongs(loadStoredSongs().filter(s => s.id !== id));
-  }
+  saveStoredSongs(loadStoredSongs().filter(s => s.id !== id));
 }
 
 /**
  * Save edits to a song.
- * Built-in songs store edits as overrides so the original is never mutated.
- * User-added songs are updated in place in stored songs.
  * @param {string} id
  * @param {{title?: string, artist?: string, album?: string|null, lyrics?: string}} updates
  */
 function saveSongEdit(id, updates) {
-  const isBuiltIn = BUILT_IN.some(s => s.id === id);
-  if (isBuiltIn) {
-    const overrides = loadOverrides();
-    overrides[id] = { ...(overrides[id] || {}), ...updates };
-    saveOverrides(overrides);
-  } else {
-    saveStoredSongs(loadStoredSongs().map(s => s.id === id ? { ...s, ...updates } : s));
-  }
+  saveStoredSongs(loadStoredSongs().map(s => s.id === id ? { ...s, ...updates } : s));
 }
 
 /**
