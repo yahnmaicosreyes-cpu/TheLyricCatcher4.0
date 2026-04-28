@@ -3,9 +3,6 @@
  *
  * Module map
  * ──────────
- *  Storage     loadStoredSongs / saveStoredSongs / loadDeletedIds /
- *              saveDeletedIds / loadOverrides / saveOverrides / getAllSongs
- *
  *  File Import parseTxtFile / addSongs / updateSongCount / showToast /
  *              handleFile / drop-zone event listeners
  *
@@ -20,77 +17,12 @@
  *  Library     escHtml / deleteSong / saveSongEdit / addManualSong /
  *              openEditForm / renderLibrary / library event listeners
  *
- *  Init        updateSongCount()
+ *  Init        loadAllSongs() → updateSongCount()
  *
  * Dependencies (must load before this file)
  * ──────────────────────────────────────────
- *  data.js — defines STORAGE_KEY, DELETED_KEY, OVERRIDES_KEY, BUILT_IN
+ *  data.js — API client (loadAllSongs, getAllSongs, apiCreateSong, etc.)
  */
-
-// ── Storage ────────────────────────────────────────────────
-
-/**
- * Load user-added songs from localStorage.
- * @returns {Array<Object>} Stored songs, or [] if nothing saved or parse fails.
- */
-function loadStoredSongs() {
-  try { const raw = localStorage.getItem(STORAGE_KEY); return raw ? JSON.parse(raw) : []; } catch(e) { return []; }
-}
-
-/**
- * Persist user-added songs to localStorage.
- * @param {Array<Object>} songs
- */
-function saveStoredSongs(songs) {
-  try { localStorage.setItem(STORAGE_KEY, JSON.stringify(songs)); } catch(e) {}
-}
-
-/**
- * Load the set of built-in song IDs the user has deleted.
- * @returns {string[]}
- */
-function loadDeletedIds() {
-  try { const raw = localStorage.getItem(DELETED_KEY); return raw ? JSON.parse(raw) : []; } catch(e) { return []; }
-}
-
-/**
- * Persist the set of deleted built-in song IDs.
- * @param {string[]} ids
- */
-function saveDeletedIds(ids) {
-  try { localStorage.setItem(DELETED_KEY, JSON.stringify(ids)); } catch(e) {}
-}
-
-/**
- * Load user edits applied to built-in songs, keyed by song ID.
- * @returns {Object.<string, Object>}
- */
-function loadOverrides() {
-  try { const raw = localStorage.getItem(OVERRIDES_KEY); return raw ? JSON.parse(raw) : {}; } catch(e) { return {}; }
-}
-
-/**
- * Persist user edits for built-in songs.
- * @param {Object.<string, Object>} overrides
- */
-function saveOverrides(overrides) {
-  try { localStorage.setItem(OVERRIDES_KEY, JSON.stringify(overrides)); } catch(e) {}
-}
-
-/**
- * Return the full active song library: built-ins (minus deleted, plus any
- * user edits) followed by user-added songs, both filtered for deleted IDs.
- * @returns {Array<Object>}
- */
-function getAllSongs() {
-  const deletedIds = loadDeletedIds();
-  const overrides = loadOverrides();
-  const builtIn = BUILT_IN
-    .filter(s => !deletedIds.includes(s.id))
-    .map(s => overrides[s.id] ? { ...s, ...overrides[s.id] } : s);
-  const stored = loadStoredSongs().filter(s => !deletedIds.includes(s.id));
-  return [...builtIn, ...stored];
-}
 
 // ── File Import ────────────────────────────────────────────
 
@@ -131,13 +63,12 @@ function parseTxtFile(text) {
 }
 
 /**
- * Add songs to the user library, skipping duplicates.
+ * Add songs to the library via the API, skipping duplicates.
  * Duplicate check: case-insensitive title + artist match against all current songs.
  * @param {Array<Object>} newSongs
- * @returns {number} Count of songs actually added.
+ * @returns {Promise<number>} Count of songs actually added.
  */
-function addSongs(newSongs) {
-  const stored = loadStoredSongs();
+async function addSongs(newSongs) {
   const existing = getAllSongs();
   const deduplicated = newSongs.filter(ns =>
     !existing.some(s =>
@@ -145,7 +76,19 @@ function addSongs(newSongs) {
       s.artist.toLowerCase() === ns.artist.toLowerCase()
     )
   );
-  saveStoredSongs([...stored, ...deduplicated]);
+  try {
+    for (const song of deduplicated) {
+      await apiCreateSong({
+        title: song.title,
+        artist: song.artist,
+        album: song.album || null,
+        genre: 'Christian Worship Music',
+        lyrics: song.lyrics,
+      });
+    }
+  } finally {
+    await loadAllSongs();
+  }
   return deduplicated.length;
 }
 
@@ -153,10 +96,9 @@ function addSongs(newSongs) {
  * Update the song count display below the drop zone.
  */
 function updateSongCount() {
-  const all = getAllSongs();
-  const activeBuiltIn = all.filter(s => s.id.startsWith('builtin_')).length;
+  const count = getAllSongs().length;
   document.getElementById('song-count').textContent =
-    `${all.length} song${all.length !== 1 ? 's' : ''} in library (${activeBuiltIn} built-in, ${all.length - activeBuiltIn} loaded)`;
+    `${count} song${count !== 1 ? 's' : ''} in library`;
 }
 
 /**
@@ -183,15 +125,19 @@ function handleFile(file) {
   if (file.size > MAX_FILE_SIZE) { showToast('File too large. Maximum size is 5 MB.'); return; }
   if (file.type && file.type !== 'text/plain') { showToast('Please use a .txt file.'); return; }
   const reader = new FileReader();
-  reader.onload = e => {
+  reader.onload = async e => {
     const parsed = parseTxtFile(e.target.result);
     if (parsed.length === 0) { showToast('No valid songs found. Check the file format.'); return; }
-    const added = addSongs(parsed);
-    updateSongCount();
-    showToast(added > 0
-      ? `${added} song${added !== 1 ? 's' : ''} added to library.`
-      : 'Songs already in library — nothing new added.'
-    );
+    try {
+      const added = await addSongs(parsed);
+      updateSongCount();
+      showToast(added > 0
+        ? `${added} song${added !== 1 ? 's' : ''} added to library.`
+        : 'Songs already in library — nothing new added.'
+      );
+    } catch (err) {
+      showToast('Error importing songs. Please try again.');
+    }
   };
   reader.readAsText(file);
 }
@@ -409,7 +355,7 @@ function phraseScore(queryTokens, normalizedTarget) {
  * @returns {Array<{label: string|null, text: string}>}
  */
 function parseSections(lyrics) {
-  const sectionPattern = /\[(verse|chorus|bridge|pre-chorus|hook|intro|outro|refrain)[^\]]*\]/gi;
+  const sectionPattern = /\[(verse|chorus|bridge|pre-chorus|post-chorus|hook|intro|outro|refrain|tag|interlude|spontaneous|lyrics needed)[^\]]*\]/gi;
   if (!sectionPattern.test(lyrics)) return [{ label: null, text: lyrics }];
   sectionPattern.lastIndex = 0;
   const sections = [];
@@ -494,7 +440,7 @@ function searchSong(song, effective, qTokens) {
   // Strip any leading section label (case-insensitive) before windowing so the
   // 40-word window captures actual lyric content, not a header like "Verse 1".
   // Matches at position 0 only: verse, verse N, chorus, bridge, pre chorus, pre-chorus.
-  const lyricsBody = song.lyrics.replace(/^(verse(\s+\d+)?|chorus|bridge|pre[-\s]chorus)\s*/i, '');
+  const lyricsBody = song.lyrics.replace(/^\[?(verse(\s+\d+)?|chorus|bridge|pre[-\s]chorus)\]?\s*/i, '');
   const openingWords = lyricsBody.split(' ').slice(0, 40).join(' ');
   const openingScore = ngramOverlap(effective, openingWords) * 4;
   if (openingScore > bestScore) { bestScore = openingScore; bestSnippet = openingWords; matchedField = 'opening'; }
@@ -664,40 +610,22 @@ function escHtml(str) {
 }
 
 /**
- * Delete a song by ID.
- * Built-in songs are soft-deleted (ID added to the deleted-IDs list and any
- * overrides removed). User-added songs are removed from stored songs directly.
- * @param {string} id
+ * Delete a song by ID via the API.
+ * @param {number} id
  */
-function deleteSong(id) {
-  const isBuiltIn = BUILT_IN.some(s => s.id === id);
-  if (isBuiltIn) {
-    const deletedIds = loadDeletedIds();
-    if (!deletedIds.includes(id)) saveDeletedIds([...deletedIds, id]);
-    const overrides = loadOverrides();
-    delete overrides[id];
-    saveOverrides(overrides);
-  } else {
-    saveStoredSongs(loadStoredSongs().filter(s => s.id !== id));
-  }
+async function deleteSong(id) {
+  await apiDeleteSong(id);
+  await loadAllSongs();
 }
 
 /**
- * Save edits to a song.
- * Built-in songs store edits as overrides so the original is never mutated.
- * User-added songs are updated in place in stored songs.
- * @param {string} id
+ * Save edits to a song via the API.
+ * @param {number} id
  * @param {{title?: string, artist?: string, album?: string|null, lyrics?: string}} updates
  */
-function saveSongEdit(id, updates) {
-  const isBuiltIn = BUILT_IN.some(s => s.id === id);
-  if (isBuiltIn) {
-    const overrides = loadOverrides();
-    overrides[id] = { ...(overrides[id] || {}), ...updates };
-    saveOverrides(overrides);
-  } else {
-    saveStoredSongs(loadStoredSongs().map(s => s.id === id ? { ...s, ...updates } : s));
-  }
+async function saveSongEdit(id, updates) {
+  await apiUpdateSong(id, updates);
+  await loadAllSongs();
 }
 
 /**
@@ -706,9 +634,9 @@ function saveSongEdit(id, updates) {
  * @param {string} artist
  * @param {string} album - Pass empty string for no album.
  * @param {string} lyrics
- * @returns {'added'|'duplicate'|'missing'} Result status.
+ * @returns {Promise<'added'|'duplicate'|'missing'>} Result status.
  */
-function addManualSong(title, artist, album, lyrics) {
+async function addManualSong(title, artist, album, lyrics) {
   if (!title.trim() || !artist.trim() || !lyrics.trim()) return 'missing';
   const existing = getAllSongs();
   const isDupe = existing.some(s =>
@@ -716,15 +644,14 @@ function addManualSong(title, artist, album, lyrics) {
     s.artist.toLowerCase() === artist.trim().toLowerCase()
   );
   if (isDupe) return 'duplicate';
-  const stored = loadStoredSongs();
-  stored.push({
-    id: 'user_' + Date.now() + '_' + Math.random().toString(36).slice(2),
+  await apiCreateSong({
     title: title.trim(),
     artist: artist.trim(),
     album: album.trim() || null,
-    lyrics: lyrics.trim()
+    genre: 'Christian Worship Music',
+    lyrics: lyrics.trim(),
   });
-  saveStoredSongs(stored);
+  await loadAllSongs();
   return 'added';
 }
 
@@ -747,15 +674,19 @@ function openEditForm(row, song) {
       </div>
     </div>
   `;
-  row.querySelector('.edit-save').addEventListener('click', () => {
+  row.querySelector('.edit-save').addEventListener('click', async () => {
     const title = row.querySelector('.edit-title').value.trim();
     const artist = row.querySelector('.edit-artist').value.trim();
     const album = row.querySelector('.edit-album').value.trim();
     const lyrics = row.querySelector('.edit-lyrics').value.trim();
     if (!title || !artist || !lyrics) { alert('Title, artist, and lyrics are required.'); return; }
-    saveSongEdit(song.id, { title, artist, album: album || null, lyrics });
-    renderLibrary();
-    updateSongCount();
+    try {
+      await saveSongEdit(song.id, { title, artist, album: album || null, lyrics });
+      renderLibrary();
+      updateSongCount();
+    } catch (err) {
+      showToast('Error saving changes. Please try again.');
+    }
   });
   row.querySelector('.edit-cancel').addEventListener('click', renderLibrary);
 }
@@ -786,11 +717,15 @@ function renderLibrary() {
       </div>
     `;
     row.querySelector('.edit-btn').addEventListener('click', () => openEditForm(row, song));
-    row.querySelector('.lib-delete-btn').addEventListener('click', () => {
+    row.querySelector('.lib-delete-btn').addEventListener('click', async () => {
       if (confirm(`Delete "${song.title}"?`)) {
-        deleteSong(song.id);
-        renderLibrary();
-        updateSongCount();
+        try {
+          await deleteSong(song.id);
+          renderLibrary();
+          updateSongCount();
+        } catch (err) {
+          showToast('Error deleting song. Please try again.');
+        }
       }
     });
     body.appendChild(row);
@@ -812,22 +747,26 @@ document.getElementById('library-add-toggle').addEventListener('click', () => {
   const form = document.getElementById('add-song-form');
   form.style.display = form.style.display === 'none' ? 'block' : 'none';
 });
-document.getElementById('add-song-submit').addEventListener('click', () => {
+document.getElementById('add-song-submit').addEventListener('click', async () => {
   const title = document.getElementById('add-title').value;
   const artist = document.getElementById('add-artist').value;
   const album = document.getElementById('add-album').value;
   const lyrics = document.getElementById('add-lyrics').value;
-  const result = addManualSong(title, artist, album, lyrics);
-  if (result === 'missing') { alert('Title, artist, and lyrics are required.'); return; }
-  if (result === 'duplicate') { alert('This song is already in the library.'); return; }
-  document.getElementById('add-title').value = '';
-  document.getElementById('add-artist').value = '';
-  document.getElementById('add-album').value = '';
-  document.getElementById('add-lyrics').value = '';
-  document.getElementById('add-song-form').style.display = 'none';
-  renderLibrary();
-  updateSongCount();
-  showToast('Song added to library.');
+  try {
+    const result = await addManualSong(title, artist, album, lyrics);
+    if (result === 'missing') { alert('Title, artist, and lyrics are required.'); return; }
+    if (result === 'duplicate') { alert('This song is already in the library.'); return; }
+    document.getElementById('add-title').value = '';
+    document.getElementById('add-artist').value = '';
+    document.getElementById('add-album').value = '';
+    document.getElementById('add-lyrics').value = '';
+    document.getElementById('add-song-form').style.display = 'none';
+    renderLibrary();
+    updateSongCount();
+    showToast('Song added to library.');
+  } catch (err) {
+    showToast('Error adding song. Please try again.');
+  }
 });
 document.getElementById('add-song-cancel').addEventListener('click', () => {
   document.getElementById('add-song-form').style.display = 'none';
@@ -835,4 +774,6 @@ document.getElementById('add-song-cancel').addEventListener('click', () => {
 
 // ── Init ───────────────────────────────────────────────────
 
-updateSongCount();
+loadAllSongs()
+  .then(() => updateSongCount())
+  .catch(() => showToast('Could not load songs from server.'));
