@@ -225,3 +225,68 @@
     .lyrics-section-label:first-child { margin-top: 0; }
     .lyrics-section-text { white-space: pre-wrap; }
     .lib-empty { color: #6b7280; font-size: 14px; padding: 20px 0; }
+
+    /* ── Song View Page ───────────────────────────── */
+    #song-view-page {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: #111111;
+      overflow-y: auto;
+      z-index: 50;
+    }
+    #song-view-inner { max-width: 680px; margin: 0 auto; padding: 2rem 1.5rem; }
+    #song-view-nav { display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem; }
+    #song-view-back {
+      font-size: 13px; font-weight: 500; padding: 6px 14px;
+      border: 0.5px solid #2e2e2e; border-radius: 6px;
+      background: #1c1c1c; color: #f5f5f5; cursor: pointer;
+    }
+    #song-view-back:hover { background: #242424; }
+    #song-view-project {
+      font-size: 13px; font-weight: 600; padding: 6px 18px;
+      border: none; border-radius: 6px;
+      background: #c9963e; color: #111111; cursor: pointer;
+    }
+    #song-view-project:hover { background: #b8852e; }
+    #song-view-title { font-size: 26px; font-weight: 600; color: #f5f5f5; margin-bottom: 6px; }
+    #song-view-meta {
+      font-size: 14px; color: #777777;
+      margin-bottom: 1.5rem; padding-bottom: 1.5rem;
+      border-bottom: 1px solid #2e2e2e;
+    }
+    #song-view-lyrics { font-size: 14px; color: #cccccc; line-height: 1.7; }
+
+    /* ── Projection Mode ──────────────────────────── */
+    #projection-mode {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: #111111;
+      z-index: 300;
+      align-items: center;
+      justify-content: center;
+    }
+    #projection-exit {
+      position: absolute; top: 20px; right: 24px; z-index: 10;
+      font-size: 12px; font-weight: 500; padding: 5px 12px;
+      border: 0.5px solid #2e2e2e; border-radius: 6px;
+      background: transparent; color: #555555; cursor: pointer;
+    }
+    #projection-exit:hover { color: #f5f5f5; border-color: #555555; }
+    #projection-prev-zone { position: absolute; left: 0; top: 0; width: 50%; height: 100%; cursor: w-resize; z-index: 5; }
+    #projection-next-zone { position: absolute; right: 0; top: 0; width: 50%; height: 100%; cursor: e-resize; z-index: 5; }
+    #projection-slide {
+      text-align: center; padding: 2rem 4rem;
+      max-width: 860px; width: 100%;
+      position: relative; z-index: 6; pointer-events: none;
+    }
+    #projection-section-label {
+      font-size: 11px; font-weight: 600; color: #c9963e;
+      text-transform: uppercase; letter-spacing: 0.1em; margin-bottom: 1.2rem;
+    }
+    #projection-text { font-size: 34px; color: #f5f5f5; line-height: 1.65; white-space: pre-wrap; }
+    #projection-counter {
+      position: absolute; bottom: 24px; right: 28px; z-index: 10;
+      font-size: 12px; color: #3a3a3a; pointer-events: none;
+    }
