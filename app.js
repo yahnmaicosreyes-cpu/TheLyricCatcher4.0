@@ -7,12 +7,19 @@
  *              handleFile / drop-zone event listeners
  *
  *  Search      normalize / tokenize / STOP_WORDS / meaningTokens /
- *              levenshtein / scoreToken / ngramOverlap / getBestSnippet /
- *              parseSections / capitalize / getThreshold / searchSong / search
+ *              levenshtein / soundex / scoreToken / phraseScore /
+ *              ngramOverlap / getBestSnippet / parseSections /
+ *              capitalize / getThreshold / searchSong / search
  *
  *  Render      debounce + input listener / render
  *
  *  Song Modal  openSongModal / close listeners
+ *
+ *  Song View   setMode / openSongView
+ *
+ *  Projection  buildSlides / enterProjection / renderProjectionSlide /
+ *              projectionNext / projectionPrev / exitProjection /
+ *              keyboard listener
  *
  *  Library     escHtml / deleteSong / saveSongEdit / addManualSong /
  *              openEditForm / renderLibrary / library event listeners
@@ -114,6 +121,12 @@ function showToast(msg) {
 
 /** Maximum allowed size for an uploaded song file (5 MB). */
 const MAX_FILE_SIZE = 5 * 1024 * 1024;
+
+// ── Song View & Projection State ──────────────────
+let _currentMode = 'search'; // 'search' | 'song-view' | 'projection'
+let _currentSong = null;
+let _projectionSlides = [];
+let _projectionIndex = 0;
 
 /**
  * Read a dropped or chosen .txt file and import its songs.
@@ -542,7 +555,7 @@ function render(query) {
       : '';
     const albumMeta = r.song.album ? ` · ${escHtml(r.song.album)}` : '';
     card.innerHTML = `${badge}<div class="song-title">${escHtml(r.song.title)}</div><div class="song-meta">${escHtml(r.song.artist)}${albumMeta}</div>${fieldLabel}<div class="match-snippet">${escHtml(r.snippet)}...</div>`;
-    card.addEventListener('click', () => openSongModal(r.song));
+    card.addEventListener('click', () => openSongView(r.song));
     resultsEl.appendChild(card);
   });
 }
@@ -591,6 +604,131 @@ document.getElementById('song-modal-close').addEventListener('click', () => {
 });
 document.getElementById('song-overlay').addEventListener('click', () => {
   document.getElementById('song-modal').style.display = 'none';
+});
+
+// ── Song View & Projection ─────────────────────────────────
+
+/**
+ * Switch between the three app modes. Only one is visible at a time.
+ * @param {'search'|'song-view'|'projection'} mode
+ */
+function setMode(mode) {
+  document.getElementById('app').style.display = mode === 'search' ? '' : 'none';
+  document.getElementById('song-view-page').style.display = mode === 'song-view' ? 'block' : 'none';
+  document.getElementById('projection-mode').style.display = mode === 'projection' ? 'flex' : 'none';
+  _currentMode = mode;
+}
+
+/**
+ * Open the Song View page for the given song.
+ * Stores the song in _currentSong for use by projection mode.
+ * @param {Object} song
+ */
+function openSongView(song) {
+  _currentSong = song;
+  document.getElementById('song-view-title').textContent = song.title;
+  document.getElementById('song-view-meta').textContent =
+    song.album ? `${song.artist} · ${song.album}` : song.artist;
+  const lyricsEl = document.getElementById('song-view-lyrics');
+  lyricsEl.innerHTML = '';
+  const sections = parseSections(song.lyrics);
+  if (sections.length === 1 && sections[0].label === null) {
+    const p = document.createElement('div');
+    p.className = 'lyrics-section-text';
+    p.textContent = sections[0].text;
+    lyricsEl.appendChild(p);
+  } else {
+    sections.forEach(section => {
+      if (section.label) {
+        const label = document.createElement('div');
+        label.className = 'lyrics-section-label';
+        label.textContent = capitalize(section.label);
+        lyricsEl.appendChild(label);
+      }
+      const text = document.createElement('div');
+      text.className = 'lyrics-section-text';
+      text.textContent = section.text;
+      lyricsEl.appendChild(text);
+    });
+  }
+  setMode('song-view');
+}
+
+/**
+ * Split a song into projection slides.
+ * Songs with section markers → one section per slide.
+ * Songs without markers → every 4 lines per slide.
+ * @param {Object} song
+ * @returns {Array<{label: string|null, text: string}>}
+ */
+function buildSlides(song) {
+  const sections = parseSections(song.lyrics);
+  if (sections.length === 1 && sections[0].label === null) {
+    const lines = sections[0].text.split('\n').filter(l => l.trim());
+    const slides = [];
+    for (let i = 0; i < lines.length; i += 4) {
+      slides.push({ label: null, text: lines.slice(i, i + 4).join('\n') });
+    }
+    return slides.length > 0 ? slides : [{ label: null, text: sections[0].text }];
+  }
+  return sections.filter(s => s.text.trim()).map(s => ({ label: s.label, text: s.text }));
+}
+
+/**
+ * Enter projection mode for _currentSong.
+ * Builds slides and renders the first one.
+ */
+function enterProjection() {
+  _projectionSlides = buildSlides(_currentSong);
+  _projectionIndex = 0;
+  renderProjectionSlide();
+  setMode('projection');
+}
+
+/** Render the current slide — label, text, and counter. */
+function renderProjectionSlide() {
+  const slide = _projectionSlides[_projectionIndex];
+  const labelEl = document.getElementById('projection-section-label');
+  labelEl.textContent = slide.label ? capitalize(slide.label) : '';
+  labelEl.style.display = slide.label ? 'block' : 'none';
+  document.getElementById('projection-text').textContent = slide.text;
+  document.getElementById('projection-counter').textContent =
+    `${_projectionIndex + 1} / ${_projectionSlides.length}`;
+}
+
+/** Advance to the next slide. No-op on last slide. */
+function projectionNext() {
+  if (_projectionIndex < _projectionSlides.length - 1) {
+    _projectionIndex++;
+    renderProjectionSlide();
+  }
+}
+
+/** Go back to the previous slide. No-op on first slide. */
+function projectionPrev() {
+  if (_projectionIndex > 0) {
+    _projectionIndex--;
+    renderProjectionSlide();
+  }
+}
+
+/** Exit projection mode and return to Song View. */
+function exitProjection() {
+  setMode('song-view');
+}
+
+document.getElementById('song-view-back').addEventListener('click', () => setMode('search'));
+document.getElementById('song-view-project').addEventListener('click', enterProjection);
+document.getElementById('projection-exit').addEventListener('click', exitProjection);
+document.getElementById('projection-prev-zone').addEventListener('click', projectionPrev);
+document.getElementById('projection-next-zone').addEventListener('click', projectionNext);
+
+// Keyboard navigation — only fires in projection mode
+document.addEventListener('keydown', e => {
+  if (_currentMode !== 'projection') return;
+  if (e.key === 'ArrowRight' || e.key === ' ') { e.preventDefault(); projectionNext(); }
+  if (e.key === 'ArrowLeft') { e.preventDefault(); projectionPrev(); }
+  if (e.key === 'Escape') exitProjection();
 });
 
 // ── Library Modal ──────────────────────────────────────────
