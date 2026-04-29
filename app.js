@@ -13,8 +13,6 @@
  *
  *  Render      debounce + input listener / render
  *
- *  Song Modal  openSongModal / close listeners
- *
  *  Song View   setMode / openSongView
  *
  *  Projection  buildSlides / enterProjection / renderProjectionSlide /
@@ -564,50 +562,6 @@ function render(query) {
 }
 
 // ── Song Detail Modal ──────────────────────────────────────
-
-/**
- * Open the song detail modal for the given song.
- * Renders styled section headers if the lyrics use [bracket] markers;
- * otherwise renders the full lyrics as a single plain-text block.
- * @param {Object} song
- */
-function openSongModal(song) {
-  document.getElementById('song-modal-title').textContent = song.title;
-  document.getElementById('song-modal-meta').textContent =
-    song.album ? `${song.artist} · ${song.album}` : song.artist;
-  const lyricsEl = document.getElementById('song-modal-lyrics');
-  lyricsEl.innerHTML = '';
-  const sections = parseSections(song.lyrics);
-  if (sections.length === 1 && sections[0].label === null) {
-    // No bracket markers — render as a single plain block
-    const p = document.createElement('div');
-    p.className = 'lyrics-section-text';
-    p.textContent = sections[0].text;
-    lyricsEl.appendChild(p);
-  } else {
-    // Bracket markers found — render each section with a styled label
-    sections.forEach(section => {
-      if (section.label) {
-        const label = document.createElement('div');
-        label.className = 'lyrics-section-label';
-        label.textContent = capitalize(section.label);
-        lyricsEl.appendChild(label);
-      }
-      const text = document.createElement('div');
-      text.className = 'lyrics-section-text';
-      text.textContent = section.text;
-      lyricsEl.appendChild(text);
-    });
-  }
-  document.getElementById('song-modal').style.display = 'block';
-}
-
-document.getElementById('song-modal-close').addEventListener('click', () => {
-  document.getElementById('song-modal').style.display = 'none';
-});
-document.getElementById('song-overlay').addEventListener('click', () => {
-  document.getElementById('song-modal').style.display = 'none';
-});
 
 // ── Song View & Projection ─────────────────────────────────
 
