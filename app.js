@@ -23,7 +23,7 @@
  *  Song Edit   openSongEditPage / closeSongEditPage
  *
  *  Library     escHtml / deleteSong / saveSongEdit / addManualSong /
- *              openEditForm / renderLibrary / library event listeners
+ *              renderLibrary / library event listeners
  *
  *  Init        loadAllSongs() → updateSongCount()
  *
@@ -830,41 +830,6 @@ async function addManualSong(title, artist, album, lyrics) {
   return 'added';
 }
 
-/**
- * Replace a library row with an inline edit form for the given song.
- * Saves via saveSongEdit and re-renders the library on confirm.
- * @param {HTMLElement} row - The .lib-song-row element to replace.
- * @param {Object} song
- */
-function openEditForm(row, song) {
-  row.innerHTML = `
-    <div class="lib-edit-form">
-      <input class="edit-title" value="${escHtml(song.title)}" placeholder="Title" />
-      <input class="edit-artist" value="${escHtml(song.artist)}" placeholder="Artist" />
-      <input class="edit-album" value="${escHtml(song.album || '')}" placeholder="Album (optional)" />
-      <textarea class="edit-lyrics" placeholder="Lyrics">${escHtml(song.lyrics)}</textarea>
-      <div class="lib-edit-actions">
-        <button class="lib-btn-save edit-save">Save</button>
-        <button class="lib-btn-cancel edit-cancel">Cancel</button>
-      </div>
-    </div>
-  `;
-  row.querySelector('.edit-save').addEventListener('click', async () => {
-    const title = row.querySelector('.edit-title').value.trim();
-    const artist = row.querySelector('.edit-artist').value.trim();
-    const album = row.querySelector('.edit-album').value.trim();
-    const lyrics = row.querySelector('.edit-lyrics').value.trim();
-    if (!title || !artist || !lyrics) { alert('Title, artist, and lyrics are required.'); return; }
-    try {
-      await saveSongEdit(song.id, { title, artist, album: album || null, lyrics });
-      renderLibrary();
-      updateSongCount();
-    } catch (err) {
-      showToast('Error saving changes. Please try again.');
-    }
-  });
-  row.querySelector('.edit-cancel').addEventListener('click', renderLibrary);
-}
 
 /**
  * Render the full song list into the library modal body.
