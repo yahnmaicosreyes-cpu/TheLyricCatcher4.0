@@ -7,8 +7,9 @@
  *              handleFile / drop-zone event listeners
  *
  *  Search      normalize / tokenize / STOP_WORDS / meaningTokens /
- *              levenshtein / scoreToken / ngramOverlap / getBestSnippet /
- *              parseSections / capitalize / getThreshold / searchSong / search
+ *              levenshtein / soundex / scoreToken / phraseScore /
+ *              ngramOverlap / getBestSnippet / parseSections /
+ *              capitalize / getThreshold / searchSong / search
  *
  *  Render      debounce + input listener / render
  *
