@@ -274,8 +274,31 @@
       background: transparent; color: #555555; cursor: pointer;
     }
     #projection-exit:hover { color: #f5f5f5; border-color: #555555; }
-    #projection-prev-zone { position: absolute; left: 0; top: 0; width: 50%; height: 100%; cursor: w-resize; z-index: 5; }
-    #projection-next-zone { position: absolute; right: 0; top: 0; width: 50%; height: 100%; cursor: e-resize; z-index: 5; }
+    #projection-title {
+      position: absolute; top: 20px; left: 24px; z-index: 10;
+      font-size: 12px; color: #3a3a3a; pointer-events: none;
+    }
+    #projection-prev, #projection-next {
+      position: absolute; top: 50%; transform: translateY(-50%);
+      background: transparent; border: none;
+      font-size: 40px; color: #2e2e2e; cursor: pointer;
+      z-index: 10; padding: 20px 16px; line-height: 1;
+      transition: color 0.15s;
+    }
+    #projection-prev { left: 8px; }
+    #projection-next { right: 8px; }
+    #projection-prev:hover, #projection-next:hover { color: #888888; }
+    #projection-controls {
+      position: absolute; bottom: 20px; left: 24px;
+      z-index: 10; display: flex; gap: 8px; align-items: center;
+    }
+    .proj-ctrl-btn {
+      font-size: 12px; font-weight: 500; padding: 5px 10px;
+      border: 0.5px solid #2e2e2e; border-radius: 6px;
+      background: transparent; color: #555555; cursor: pointer;
+    }
+    .proj-ctrl-btn:hover { color: #f5f5f5; border-color: #555555; }
+    .proj-ctrl-btn.active { color: #c9963e; border-color: #c9963e; }
     #projection-slide {
       text-align: center; padding: 2rem 4rem;
       max-width: 860px; width: 100%;
