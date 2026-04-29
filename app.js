@@ -19,6 +19,7 @@
  *
  *  Projection  buildSlides / enterProjection / renderProjectionSlide /
  *              projectionNext / projectionPrev / exitProjection /
+ *              projectionFontInc / projectionFontDec / toggleBlank /
  *              keyboard listener
  *
  *  Library     escHtml / deleteSong / saveSongEdit / addManualSong /
@@ -127,6 +128,8 @@ let _currentMode = 'search'; // 'search' | 'song-view' | 'projection'
 let _currentSong = null;
 let _projectionSlides = [];
 let _projectionIndex = 0;
+let _projectionFontSize = parseInt(localStorage.getItem('tlc_proj_fontsize') || '34', 10);
+let _projectionBlanked = false;
 
 /**
  * Read a dropped or chosen .txt file and import its songs.
@@ -676,22 +679,29 @@ function buildSlides(song) {
 
 /**
  * Enter projection mode for _currentSong.
- * Builds slides and renders the first one.
+ * Builds slides, resets blank state, sets song title, renders first slide.
  */
 function enterProjection() {
   _projectionSlides = buildSlides(_currentSong);
   _projectionIndex = 0;
+  _projectionBlanked = false;
+  document.getElementById('projection-slide').style.visibility = 'visible';
+  document.getElementById('projection-blank').textContent = 'Blank';
+  document.getElementById('projection-blank').classList.remove('active');
+  document.getElementById('projection-title').textContent = _currentSong.title;
   renderProjectionSlide();
   setMode('projection');
 }
 
-/** Render the current slide — label, text, and counter. */
+/** Render the current slide — label, text, font size, and counter. */
 function renderProjectionSlide() {
   const slide = _projectionSlides[_projectionIndex];
   const labelEl = document.getElementById('projection-section-label');
   labelEl.textContent = slide.label ? capitalize(slide.label) : '';
   labelEl.style.display = slide.label ? 'block' : 'none';
-  document.getElementById('projection-text').textContent = slide.text;
+  const textEl = document.getElementById('projection-text');
+  textEl.textContent = slide.text;
+  textEl.style.fontSize = _projectionFontSize + 'px';
   document.getElementById('projection-counter').textContent =
     `${_projectionIndex + 1} / ${_projectionSlides.length}`;
 }
@@ -717,11 +727,40 @@ function exitProjection() {
   setMode('song-view');
 }
 
+/** Increase projection font size (max 62px). Persists to localStorage. */
+function projectionFontInc() {
+  if (_projectionFontSize >= 62) return;
+  _projectionFontSize += 4;
+  localStorage.setItem('tlc_proj_fontsize', _projectionFontSize);
+  document.getElementById('projection-text').style.fontSize = _projectionFontSize + 'px';
+}
+
+/** Decrease projection font size (min 18px). Persists to localStorage. */
+function projectionFontDec() {
+  if (_projectionFontSize <= 18) return;
+  _projectionFontSize -= 4;
+  localStorage.setItem('tlc_proj_fontsize', _projectionFontSize);
+  document.getElementById('projection-text').style.fontSize = _projectionFontSize + 'px';
+}
+
+/** Toggle blank slide — hides lyrics without losing slide position. */
+function toggleBlank() {
+  _projectionBlanked = !_projectionBlanked;
+  document.getElementById('projection-slide').style.visibility =
+    _projectionBlanked ? 'hidden' : 'visible';
+  const btn = document.getElementById('projection-blank');
+  btn.textContent = _projectionBlanked ? 'Show' : 'Blank';
+  btn.classList.toggle('active', _projectionBlanked);
+}
+
 document.getElementById('song-view-back').addEventListener('click', () => setMode('search'));
 document.getElementById('song-view-project').addEventListener('click', enterProjection);
 document.getElementById('projection-exit').addEventListener('click', exitProjection);
-document.getElementById('projection-prev-zone').addEventListener('click', projectionPrev);
-document.getElementById('projection-next-zone').addEventListener('click', projectionNext);
+document.getElementById('projection-prev').addEventListener('click', projectionPrev);
+document.getElementById('projection-next').addEventListener('click', projectionNext);
+document.getElementById('projection-font-dec').addEventListener('click', projectionFontDec);
+document.getElementById('projection-font-inc').addEventListener('click', projectionFontInc);
+document.getElementById('projection-blank').addEventListener('click', toggleBlank);
 
 // Keyboard navigation — only fires in projection mode
 document.addEventListener('keydown', e => {
