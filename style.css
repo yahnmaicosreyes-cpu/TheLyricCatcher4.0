@@ -187,6 +187,63 @@
     .lyrics-section-text { white-space: pre-wrap; }
     .lib-empty { color: #6b7280; font-size: 14px; padding: 20px 0; }
 
+    /* ── Song Edit Page ──────────────────────────── */
+    #song-edit-page {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: #111111;
+      overflow-y: auto;
+      z-index: 150;
+    }
+    #song-edit-inner {
+      max-width: 680px;
+      margin: 0 auto;
+      padding: 2rem 1.5rem;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+    #song-edit-nav {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 2rem;
+      flex-shrink: 0;
+    }
+    #song-edit-cancel {
+      font-size: 13px; font-weight: 500; padding: 6px 14px;
+      border: 0.5px solid #2e2e2e; border-radius: 6px;
+      background: #1c1c1c; color: #777777; cursor: pointer;
+    }
+    #song-edit-cancel:hover { background: #242424; color: #f5f5f5; }
+    #song-edit-save {
+      font-size: 13px; font-weight: 600; padding: 6px 18px;
+      border: none; border-radius: 6px;
+      background: #c9963e; color: #111111; cursor: pointer;
+    }
+    #song-edit-save:hover { background: #b8852e; }
+    #song-edit-form {
+      display: flex;
+      flex-direction: column;
+      flex: 1;
+    }
+    #song-edit-form input {
+      width: 100%; font-size: 14px; padding: 9px 12px;
+      border: 1px solid #2e2e2e; border-radius: 6px;
+      margin-bottom: 10px; color: #f5f5f5;
+      background: #1c1c1c; outline: none; font-family: inherit;
+    }
+    #song-edit-form input:focus { border-color: #c9963e; }
+    #song-edit-lyrics {
+      width: 100%; font-size: 14px; padding: 9px 12px;
+      border: 1px solid #2e2e2e; border-radius: 6px;
+      color: #f5f5f5; background: #1c1c1c; outline: none;
+      font-family: inherit; resize: vertical;
+      flex: 1; min-height: 55vh; line-height: 1.6;
+    }
+    #song-edit-lyrics:focus { border-color: #c9963e; }
+
     /* ── Song View Page ───────────────────────────── */
     #song-view-page {
       display: none;

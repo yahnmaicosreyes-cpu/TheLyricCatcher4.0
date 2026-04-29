@@ -20,6 +20,8 @@
  *              projectionFontInc / projectionFontDec / toggleBlank /
  *              keyboard listener
  *
+ *  Song Edit   openSongEditPage / closeSongEditPage
+ *
  *  Library     escHtml / deleteSong / saveSongEdit / addManualSong /
  *              openEditForm / renderLibrary / library event listeners
  *
@@ -724,6 +726,48 @@ document.addEventListener('keydown', e => {
   if (e.key === 'Escape') exitProjection();
 });
 
+// ── Song Edit Page ─────────────────────────────────────────
+
+/** Song currently open in the full-screen edit page. */
+let _editingSong = null;
+
+/**
+ * Open the full-screen edit page for a given song.
+ * Populates all fields and shows the page above the library modal.
+ * @param {Object} song
+ */
+function openSongEditPage(song) {
+  _editingSong = song;
+  document.getElementById('song-edit-title').value = song.title;
+  document.getElementById('song-edit-artist').value = song.artist;
+  document.getElementById('song-edit-album').value = song.album || '';
+  document.getElementById('song-edit-lyrics').value = song.lyrics;
+  document.getElementById('song-edit-page').style.display = 'block';
+}
+
+/** Close the edit page and return to the library modal. */
+function closeSongEditPage() {
+  document.getElementById('song-edit-page').style.display = 'none';
+  _editingSong = null;
+}
+
+document.getElementById('song-edit-cancel').addEventListener('click', closeSongEditPage);
+document.getElementById('song-edit-save').addEventListener('click', async () => {
+  const title = document.getElementById('song-edit-title').value.trim();
+  const artist = document.getElementById('song-edit-artist').value.trim();
+  const album = document.getElementById('song-edit-album').value.trim();
+  const lyrics = document.getElementById('song-edit-lyrics').value.trim();
+  if (!title || !artist || !lyrics) { alert('Title, artist, and lyrics are required.'); return; }
+  try {
+    await saveSongEdit(_editingSong.id, { title, artist, album: album || null, lyrics });
+    closeSongEditPage();
+    renderLibrary();
+    updateSongCount();
+  } catch (err) {
+    showToast('Error saving changes. Please try again.');
+  }
+});
+
 // ── Library Modal ──────────────────────────────────────────
 
 /**
@@ -847,7 +891,7 @@ function renderLibrary() {
         <button class="lib-btn lib-delete-btn">Delete</button>
       </div>
     `;
-    row.querySelector('.edit-btn').addEventListener('click', () => openEditForm(row, song));
+    row.querySelector('.edit-btn').addEventListener('click', () => openSongEditPage(song));
     row.querySelector('.lib-delete-btn').addEventListener('click', async () => {
       if (confirm(`Delete "${song.title}"?`)) {
         try {
