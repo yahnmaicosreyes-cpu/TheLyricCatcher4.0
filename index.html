@@ -41,19 +41,6 @@
   <div id="song-count"></div>
 </div>
 
-<!-- Song Detail Modal -->
-<div id="song-modal">
-  <div id="song-overlay"></div>
-  <div id="song-box">
-    <div id="song-modal-header">
-      <div id="song-modal-title"></div>
-      <div id="song-modal-meta"></div>
-      <button id="song-modal-close">&#x2715;</button>
-    </div>
-    <div id="song-modal-lyrics"></div>
-  </div>
-</div>
-
 <!-- Library Modal -->
 <div id="library-modal">
   <div id="library-overlay"></div>
@@ -75,6 +62,22 @@
           <button class="lib-btn-cancel" id="add-song-cancel">Cancel</button>
         </div>
       </div>
+    </div>
+  </div>
+</div>
+
+<!-- Song Edit Page -->
+<div id="song-edit-page">
+  <div id="song-edit-inner">
+    <div id="song-edit-nav">
+      <button id="song-edit-cancel">Cancel</button>
+      <button id="song-edit-save">Save</button>
+    </div>
+    <div id="song-edit-form">
+      <input id="song-edit-title" placeholder="Title *" />
+      <input id="song-edit-artist" placeholder="Artist *" />
+      <input id="song-edit-album" placeholder="Album (optional)" />
+      <textarea id="song-edit-lyrics" placeholder="Lyrics *"></textarea>
     </div>
   </div>
 </div>
