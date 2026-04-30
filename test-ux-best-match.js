@@ -39,5 +39,12 @@ test('JS: label appended to resultsEl before card',       /results-section-label
 test('JS: top-match class still applied to first card',   appJs.includes("(i === 0 ? ' top-match' : '')"));
 test('JS: Best match badge still present',                appJs.includes('"Best match"'));
 
+// JS: snippet highlighting
+test('JS: highlightSnippet function defined',             /function highlightSnippet\(/.test(appJs));
+test('JS: highlightSnippet wraps matches in <strong>',    appJs.includes('`<strong>${escaped}</strong>`'));
+test('JS: highlightSnippet escapes HTML before wrapping', /escHtml\(word\)[\s\S]{0,100}<strong>/.test(appJs));
+test('JS: render uses highlightSnippet for snippet',      appJs.includes('highlightSnippet(r.snippet, tokenize(query))'));
+test('JS: escHtml no longer used directly on r.snippet',  !appJs.includes('escHtml(r.snippet)'));
+
 console.log(`\n${passed + failed} tests — ${passed} passed, ${failed} failed\n`);
 process.exit(failed > 0 ? 1 : 0);

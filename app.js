@@ -534,6 +534,14 @@ input.addEventListener('input', () => {
  * others show a percentage score.
  * @param {string} query - Raw user input.
  */
+function highlightSnippet(snippet, queryTokens) {
+  const tokenSet = new Set(queryTokens);
+  return snippet.split(' ').map(word => {
+    const escaped = escHtml(word);
+    return tokenSet.has(normalize(word)) ? `<strong>${escaped}</strong>` : escaped;
+  }).join(' ');
+}
+
 function render(query) {
   resultsEl.innerHTML = '';
   noResultsEl.style.display = 'none';
@@ -563,7 +571,7 @@ function render(query) {
       ? `<div class="match-field">${capitalize(r.matchedField)}</div>`
       : '';
     const albumMeta = r.song.album ? ` · ${escHtml(r.song.album)}` : '';
-    card.innerHTML = `${badge}<div class="song-title">${escHtml(r.song.title)}</div><div class="song-meta">${escHtml(r.song.artist)}${albumMeta}</div>${fieldLabel}<div class="match-snippet">${escHtml(r.snippet)}...</div>`;
+    card.innerHTML = `${badge}<div class="song-title">${escHtml(r.song.title)}</div><div class="song-meta">${escHtml(r.song.artist)}${albumMeta}</div>${fieldLabel}<div class="match-snippet">${highlightSnippet(r.snippet, tokenize(query))}...</div>`;
     card.addEventListener('click', () => openSongView(r.song));
     resultsEl.appendChild(card);
   });
