@@ -39,14 +39,24 @@
     #search-input:focus { border-color: #c9963e; box-shadow: 0 0 0 3px rgba(201,150,62,0.12); }
     #status { font-size: 13px; color: #777777; margin-top: 8px; min-height: 18px; }
     #results { margin-top: 1rem; display: flex; flex-direction: column; gap: 10px; }
+    .results-section-label {
+      font-size: 11px;
+      font-weight: 600;
+      color: #555555;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      padding-top: 4px;
+    }
     .result-card {
       background: #1c1c1c;
       border: 0.5px solid #2e2e2e;
       border-radius: 10px;
       padding: 14px 16px;
       cursor: pointer;
-      transition: border-color 0.1s;
+      transition: border-color 0.1s, opacity 0.15s;
     }
+    .result-card:not(.top-match) { opacity: 0.5; }
+    .result-card:not(.top-match):hover { opacity: 1; }
     .result-card:hover { border-color: #555555; }
     .result-card.top-match { border: 1.5px solid #c9963e; }
     .song-title { font-size: 16px; font-weight: 500; color: #f5f5f5; }

@@ -545,6 +545,12 @@ function render(query) {
   statusEl.textContent = results.length > 0 ? `${results.length} match${results.length > 1 ? 'es' : ''} found` : '';
   if (results.length === 0) { noResultsEl.style.display = 'block'; return; }
   results.slice(0, 6).forEach((r, i) => {
+    if (i === 0 || i === 1) {
+      const label = document.createElement('div');
+      label.className = 'results-section-label';
+      label.textContent = i === 0 ? 'Top Result' : 'Other Matches';
+      resultsEl.appendChild(label);
+    }
     const card = document.createElement('div');
     card.className = 'result-card' + (i === 0 ? ' top-match' : '');
     const pct = Math.min(99, Math.round(r.score * 100));
